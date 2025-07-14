@@ -127,35 +127,53 @@ for item, blocks in item_to_blocks.items():
     for b in blocks:
         block_assignment[b] = item
 
-# -------- Step 5: Order simulation and distance calculation --------
+# -------- Step 5: Order simulation with inventory depletion and distance prioritization --------
+
+# Initialize inventory: each block starts with 10 units
+block_inventory = {block: 10 for block in block_assignment}
+
+# Create reverse map: item -> list of its blocks
 item_to_blocklist = defaultdict(list)
-for b, i in block_assignment.items():
-    item_to_blocklist[i].append(b)
+for block, item in block_assignment.items():
+    item_to_blocklist[item].append(block)
 
 
-def get_nearest_block(item):
-    blocks = item_to_blocklist[item]
-    return min(blocks, key=lambda b: block_distances[b])
+# Helper: sort blocks by (distance from depot, then inventory remaining)
+def get_sorted_blocks_for_item(item):
+    return sorted(
+        item_to_blocklist[item], key=lambda b: (block_distances[b], block_inventory[b])
+    )
 
 
 total_distance = 0
 order_distances = {}
+
 for cust, group in orders_df.groupby("CustomerID"):
-    items = group["ItemID"].unique().tolist()
-    blocks_to_visit = [get_nearest_block(i) for i in items]
-    locs = ["depot"] + blocks_to_visit
+    item_amounts = group.groupby("ItemID")["Amount"].sum().to_dict()
+    blocks_visited = []
+
+    for item, amount_needed in item_amounts.items():
+        for block in get_sorted_blocks_for_item(item):
+            if amount_needed == 0:
+                break
+            available = block_inventory[block]
+            if available == 0:
+                continue
+            take = min(amount_needed, available)
+            block_inventory[block] -= take
+            amount_needed -= take
+            blocks_visited.append(block)
+
+    # Walk: depot -> all needed blocks -> depot
+    route = ["depot"] + blocks_visited + ["depot"]
     dist_matrix = {
         (a, b): nx.shortest_path_length(G, a, b, weight="weight")
-        for a in locs
-        for b in locs
+        for a in route
+        for b in route
         if a != b
     }
-    path_order = ["depot"] + blocks_to_visit + ["depot"]
-    dist = sum(
-        dist_matrix[(path_order[i], path_order[i + 1])]
-        for i in range(len(path_order) - 1)
-    )
+    dist = sum(dist_matrix[(route[i], route[i + 1])] for i in range(len(route) - 1))
     order_distances[cust] = dist
     total_distance += dist
 
-(block_assignment, order_distances, total_distance)
+print(block_assignment, order_distances, total_distance)
