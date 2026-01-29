@@ -88,7 +88,8 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
     # 2. Handling Effort
     handling_effort = 0
     
-    # Recompute average filling for handling effort calculation (as per original logic)
+    # Recompute average filling for handling effort calculation
+    # Using item_total_demand (which now comes from inventory if available)
     for item, blocks in item_to_blocklist.items():
         total_demand = item_total_demand.get(item, 0)
         total_blocks = len(blocks)

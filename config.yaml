@@ -21,8 +21,6 @@ layout:
       type: "junction"
     - id: "j5"
       type: "junction"
-    - id: "j6"
-      type: "junction"
     - id: "b1"
       type: "block"
     - id: "b2"
@@ -43,23 +41,22 @@ layout:
       type: "block"
     - id: "b10"
       type: "block"
-    - id: "b11"
-      type: "block"
-    - id: "b12"
-      type: "block"
   
   edges:
     - source: "depot"
       target: "j1"
-      weight: 3
-    - source: "depot"
-      target: "j4"
-      weight: 3
+      weight: 1
     - source: "j1"
       target: "j2"
       weight: 1
     - source: "j2"
       target: "j3"
+      weight: 1
+    - source: "j3"
+      target: "j4"
+      weight: 1
+    - source: "j4"
+      target: "j5"
       weight: 1
     - source: "j1"
       target: "b1"
@@ -80,12 +77,6 @@ layout:
       target: "b6"
       weight: 1
     - source: "j4"
-      target: "j5"
-      weight: 1
-    - source: "j5"
-      target: "j6"
-      weight: 1
-    - source: "j4"
       target: "b7"
       weight: 1
     - source: "j4"
@@ -96,10 +87,4 @@ layout:
       weight: 1
     - source: "j5"
       target: "b10"
-      weight: 1
-    - source: "j6"
-      target: "b11"
-      weight: 1
-    - source: "j6"
-      target: "b12"
       weight: 1

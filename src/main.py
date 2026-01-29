@@ -16,11 +16,16 @@ CONFIG_FILE = os.path.join(BASE_DIR, "config.yaml")
 
 ORDERS_FILE = os.path.join(DATA_DIR, "sample_orders.csv")
 ITEM_INFO_FILE = os.path.join(DATA_DIR, "sample_item_info.csv")
+INVENTORY_FILE = os.path.join(DATA_DIR, "sample_inventory.csv")
 
 if not os.path.exists(ORDERS_FILE):
     ORDERS_FILE = os.path.join(DATA_DIR, "orders.xlsx")
 if not os.path.exists(ITEM_INFO_FILE):
     ITEM_INFO_FILE = os.path.join(DATA_DIR, "item_info.xlsx")
+
+# Optional: Check if inventory file exists, if not usage is None (fallback handled in preprocess)
+if not os.path.exists(INVENTORY_FILE):
+    INVENTORY_FILE = None # Or maybe check for an excel version?
 
 def load_config():
     with open(CONFIG_FILE, 'r') as f:
@@ -51,13 +56,15 @@ def main():
 
     # 2. Load Data
     print(f"[2/5] Loading data from {DATA_DIR}...")
-    orders_df, item_info_df = load_data(ORDERS_FILE, ITEM_INFO_FILE)
+    orders_df, item_info_df, inventory_df = load_data(ORDERS_FILE, ITEM_INFO_FILE, INVENTORY_FILE)
     print(f"      Orders: {len(orders_df)}, Items: {len(item_info_df)}")
+    if inventory_df is not None:
+        print(f"      Inventory Items: {len(inventory_df)}")
 
     # 3. Preprocess
     print(f"[3/5] Computing metrics and co-occurrence...")
-    item_demand_freq, item_total_demand, item_blocks_required, item_sizes, item_weight = \
-        compute_demand_metrics(orders_df, item_info_df, block_capacity)
+    item_demand_freq, item_total_inventory, item_blocks_required, item_sizes, item_weight = \
+        compute_demand_metrics(orders_df, item_info_df, inventory_df, block_capacity)
     
     cooc_matrix = build_cooccurrence_matrix(orders_df)
     
@@ -86,7 +93,7 @@ def main():
         orders_df, 
         item_sizes, 
         item_weight, 
-        item_total_demand, 
+        item_total_inventory, 
         G, 
         depot, 
         block_capacity
