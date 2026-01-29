@@ -48,10 +48,10 @@ orders_df = pd.DataFrame(
     [
         {"CustomerID": "p1", "ItemID": "A", "Amount": 10},
         {"CustomerID": "p1", "ItemID": "B", "Amount": 3},
-        {"CustomerID": "p2", "ItemID": "C", "Amount": 12},
+        {"CustomerID": "p2", "ItemID": "A", "Amount": 12},
         {"CustomerID": "p2", "ItemID": "F", "Amount": 3},
         {"CustomerID": "p3", "ItemID": "A", "Amount": 8},
-        {"CustomerID": "p3", "ItemID": "C", "Amount": 4},
+        {"CustomerID": "p3", "ItemID": "A", "Amount": 4},
         {"CustomerID": "p3", "ItemID": "D", "Amount": 6},
         {"CustomerID": "p4", "ItemID": "E", "Amount": 10},
         {"CustomerID": "p4", "ItemID": "B", "Amount": 4},
@@ -77,6 +77,7 @@ item_blocks_required = {
     for item in item_demand_freq
 }
 
+# print(item_demand_freq)
 # Co-occurrence matrix
 grouped_orders = orders_df.groupby("CustomerID")
 co_occurrence = defaultdict(lambda: defaultdict(int))
@@ -88,7 +89,20 @@ for _, group in grouped_orders:
 co_occurrence_df = pd.DataFrame(co_occurrence).fillna(0).astype(int)
 
 # PPS Calculation
-w_freq, w_cooc = 0.7, 0.3
+"""
+0.0 1.0 : 164
+0.1 0.9 : 138
+0.2 0.8 : 138
+0.3 0.7 : 138
+0.4 0.6 : 138
+0.5 0.5 : 138
+0.6 0.4 : 138
+0.7 0.3 : 138
+0.8 0.2 : 138
+0.9 0.1 : 138
+1.0 0.0 : 138
+"""
+w_freq, w_cooc = 0.8, 0.2
 max_demand = max(item_demand_freq.values())
 demand_score = {i: item_demand_freq[i] / max_demand for i in item_demand_freq}
 cooc_sum = co_occurrence_df.sum(axis=1).to_dict()
