@@ -88,7 +88,7 @@ def main():
 
     # 5. Evaluate
     print(f"[5/5] Evaluating solution...")
-    total_dist, handling_effort = evaluate_solution(
+    total_dist, handling_effort, order_distances, order_efforts, order_routes = evaluate_solution(
         block_assignment, 
         orders_df, 
         item_sizes, 
@@ -98,6 +98,30 @@ def main():
         depot, 
         block_capacity
     )
+
+    # --- Debug Outputs ---
+    print("\n---------------- DEBUG INFO ----------------")
+    print(">>> 1. Item Statistics (Inventory & Blocks)")
+    print(f"{'ItemID':<10} {'TotalAmount':<15} {'BlocksRequired':<15}")
+    for item in sorted(item_total_inventory.keys()):
+        print(f"{item:<10} {item_total_inventory[item]:<15} {item_blocks_required.get(item, 0):<15}")
+
+    print("\n>>> 2. Co-occurrence Matrix (Top 10 pairs)")
+    # Sort by frequency desc
+    sorted_cooc = sorted(cooc_matrix.items(), key=lambda x: x[1], reverse=True)[:10]
+    for (i, j), val in sorted_cooc:
+        print(f"({i}, {j}): {val}")
+
+    print("\n>>> 3. Customer Order Metrics")
+    print(f"{'CustomerID':<15} {'Dist':<10} {'Effort':<12} {'Path'}")
+    for cust in sorted(order_distances.keys()):
+        d = order_distances.get(cust, 0)
+        e = order_efforts.get(cust, 0)
+        r = order_routes.get(cust, [])
+        path_str = "->".join(r)
+        print(f"{cust:<15} {d:<10.2f} {e:<12.2f} {path_str}")
+    print("--------------------------------------------")
+    # ---------------------
 
     # Output Results
     print("\n---------------- Results ----------------")

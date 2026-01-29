@@ -30,9 +30,11 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
             ),
         )
 
-    # 1. Total Walking Distance
+    # 1. Total Walking Distance & Picking Effort
     total_distance = 0
     order_distances = {}
+    order_efforts = {}
+    order_routes = {}
     
     # Reset inventory for simulation
     simulation_inventory = block_inventory_template.copy()
@@ -40,13 +42,15 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
     for cust, group in orders_df.groupby("CustomerID"):
         item_amounts = group.groupby("ItemID")["Amount"].sum().to_dict()
         blocks_visited = []
-
+        current_order_effort = 0
+        
         for item, amount_needed in item_amounts.items():
             if item not in item_to_blocklist:
-                # Item not placed (e.g. didn't fit or not optimized), skip or penalty?
+                # Item not placed
                 continue
                 
             sorted_blocks = get_sorted_blocks_for_item(item, simulation_inventory)
+            w_i = item_weight.get(item, 0)
             
             for block in sorted_blocks:
                 if amount_needed <= 0:
@@ -59,24 +63,35 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
                 simulation_inventory[block] -= take
                 amount_needed -= take
                 blocks_visited.append(block)
+                
+                # Picking Effort for this part of the order
+                dist_to_depot = nx.shortest_path_length(G, depot, block, weight="weight")
+                current_order_effort += w_i * take * dist_to_depot
+
+        order_efforts[cust] = current_order_effort
 
         if not blocks_visited:
             order_distances[cust] = 0
+            order_routes[cust] = [depot, depot]
             continue
             
-        # Construct route: Depot -> Block1 -> Block2 ... -> Depot
-        # Original code just appended blocks_visited. 
-        # TSP is NP-hard, but original code just did sum of sequential distances?
-        # "route = ["depot"] + blocks_visited + ["depot"]" -> This assumes visitation order matters or is just the order we picked them?
-        # In original code, it was order of picking. 
-        # A real warehouse picker would optimize the route. 
-        # But we must preserve logic.
+        # Optimize route: Nearest Neighbor TSP
+        # Start at depot, always go to the nearest unvisited unique block
+        unique_blocks = set(blocks_visited)
+        route = [depot]
+        current_loc = depot
         
-        # Optimization: Sort blocks by index or some heuristic? 
-        # Original code: "blocks_visited" order depends on outer loop order of items... which is arbitrary from dict iteration?
-        # Actually items in "item_amounts" dict iteration order.
-        # So leaving as is:
-        route = [depot] + blocks_visited + [depot]
+        while unique_blocks:
+            nearest_block = min(
+                unique_blocks, 
+                key=lambda b: nx.shortest_path_length(G, current_loc, b, weight="weight")
+            )
+            route.append(nearest_block)
+            unique_blocks.remove(nearest_block)
+            current_loc = nearest_block
+            
+        route.append(depot)
+        order_routes[cust] = route
         
         dist = sum(
             nx.shortest_path_length(G, route[i], route[i + 1], weight="weight")
@@ -85,11 +100,11 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
         order_distances[cust] = dist
         total_distance += dist
 
-    # 2. Handling Effort
+    # 2. Handling Effort (Placement/Stocking Effort)
+    # This remains as the global layout metric
     handling_effort = 0
     
     # Recompute average filling for handling effort calculation
-    # Using item_total_demand (which now comes from inventory if available)
     for item, blocks in item_to_blocklist.items():
         total_demand = item_total_demand.get(item, 0)
         total_blocks = len(blocks)
@@ -99,10 +114,9 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
         leftover = total_demand % total_blocks
 
         for idx, block in enumerate(blocks):
-            # Distribute leftover to the first few blocks
             amount_in_block = avg_amount + (1 if idx < leftover else 0)
             dist = nx.shortest_path_length(G, depot, block, weight="weight")
             effort = item_weight.get(item, 0) * amount_in_block * dist
             handling_effort += effort
             
-    return total_distance, handling_effort
+    return total_distance, handling_effort, order_distances, order_efforts, order_routes
