@@ -1,0 +1,105 @@
+parameters:
+  block_capacity: 60
+  pps_weights:
+    w_freq: 0.5
+    w_cooc: 0.5
+  lsc_weights:
+    w_depot: 0.5
+    w_affinity: 0.5
+
+layout:
+  nodes:
+    - id: "depot"
+      type: "depot"
+    - id: "j1"
+      type: "junction"
+    - id: "j2"
+      type: "junction"
+    - id: "j3"
+      type: "junction"
+    - id: "j4"
+      type: "junction"
+    - id: "j5"
+      type: "junction"
+    - id: "j6"
+      type: "junction"
+    - id: "b1"
+      type: "block"
+    - id: "b2"
+      type: "block"
+    - id: "b3"
+      type: "block"
+    - id: "b4"
+      type: "block"
+    - id: "b5"
+      type: "block"
+    - id: "b6"
+      type: "block"
+    - id: "b7"
+      type: "block"
+    - id: "b8"
+      type: "block"
+    - id: "b9"
+      type: "block"
+    - id: "b10"
+      type: "block"
+    - id: "b11"
+      type: "block"
+    - id: "b12"
+      type: "block"
+  
+  edges:
+    - source: "depot"
+      target: "j1"
+      weight: 3
+    - source: "depot"
+      target: "j4"
+      weight: 3
+    - source: "j1"
+      target: "j2"
+      weight: 1
+    - source: "j2"
+      target: "j3"
+      weight: 1
+    - source: "j1"
+      target: "b1"
+      weight: 1
+    - source: "j1"
+      target: "b2"
+      weight: 1
+    - source: "j2"
+      target: "b3"
+      weight: 1
+    - source: "j2"
+      target: "b4"
+      weight: 1
+    - source: "j3"
+      target: "b5"
+      weight: 1
+    - source: "j3"
+      target: "b6"
+      weight: 1
+    - source: "j4"
+      target: "j5"
+      weight: 1
+    - source: "j5"
+      target: "j6"
+      weight: 1
+    - source: "j4"
+      target: "b7"
+      weight: 1
+    - source: "j4"
+      target: "b8"
+      weight: 1
+    - source: "j5"
+      target: "b9"
+      weight: 1
+    - source: "j5"
+      target: "b10"
+      weight: 1
+    - source: "j6"
+      target: "b11"
+      weight: 1
+    - source: "j6"
+      target: "b12"
+      weight: 1

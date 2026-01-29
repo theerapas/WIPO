@@ -1,9 +1,12 @@
 import networkx as nx
 
-def build_warehouse_graph():
+def build_warehouse_graph(layout_data):
     """
-    Constructs the warehouse graph topology including depot, junctions, and blocks.
+    Constructs the warehouse graph topology from a layout dictionary.
     
+    Args:
+        layout_data (dict): Dictionary containing 'nodes' and 'edges'.
+        
     Returns:
         tuple: (G, depot, junctions, blocks)
             G (nx.Graph): The warehouse graph with weighted edges.
@@ -12,39 +15,25 @@ def build_warehouse_graph():
             blocks (list): List of block node IDs.
     """
     G = nx.Graph()
-    depot = "depot"
-    junctions = [f"j{i}" for i in range(1, 7)]
-    blocks = [f"b{i}" for i in range(1, 13)]
-
-    # Add nodes
-    G.add_node(depot, type="depot")
-    for j in junctions:
-        G.add_node(j, type="junction")
-    for b in blocks:
-        G.add_node(b, type="block")
-
-    # Add edges (depot distance = 3)
-    G.add_edge(depot, "j1", weight=3)
-    G.add_edge(depot, "j4", weight=3)
-
-    # Left side
-    G.add_edge("j1", "j2", weight=1)
-    G.add_edge("j2", "j3", weight=1)
-    G.add_edge("j1", "b1", weight=1)
-    G.add_edge("j1", "b2", weight=1)
-    G.add_edge("j2", "b3", weight=1)
-    G.add_edge("j2", "b4", weight=1)
-    G.add_edge("j3", "b5", weight=1)
-    G.add_edge("j3", "b6", weight=1)
-
-    # Right side
-    G.add_edge("j4", "j5", weight=1)
-    G.add_edge("j5", "j6", weight=1)
-    G.add_edge("j4", "b7", weight=1)
-    G.add_edge("j4", "b8", weight=1)
-    G.add_edge("j5", "b9", weight=1)
-    G.add_edge("j5", "b10", weight=1)
-    G.add_edge("j6", "b11", weight=1)
-    G.add_edge("j6", "b12", weight=1)
+    depot = None
+    junctions = []
+    blocks = []
     
+    # Add nodes
+    for node in layout_data["nodes"]:
+        nid = node["id"]
+        ntype = node["type"]
+        G.add_node(nid, type=ntype)
+        
+        if ntype == "depot":
+            depot = nid
+        elif ntype == "junction":
+            junctions.append(nid)
+        elif ntype == "block":
+            blocks.append(nid)
+            
+    # Add edges
+    for edge in layout_data["edges"]:
+        G.add_edge(edge["source"], edge["target"], weight=edge["weight"])
+        
     return G, depot, junctions, blocks

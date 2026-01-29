@@ -44,10 +44,15 @@ def compute_lsc(item_id, b, item_weight, item_k, placed_blocks, cooc, G, depot, 
     # print(f"Block : {b} LCS : {depot_term + affinity_term}")
     return depot_term + affinity_term
 
-def place_items_by_lsc(items, demand, weight, k_values, cooc, G, blocks, depot):
+def place_items_by_lsc(items, demand, weight, k_values, cooc, G, blocks, depot, pps_weights=None, lsc_weights=None):
     """
     Main heuristic loop to place items into blocks.
     """
+    if pps_weights is None:
+        pps_weights = {"w_freq": 0.5, "w_cooc": 0.5}
+    if lsc_weights is None:
+        lsc_weights = {"w_depot": 0.5, "w_affinity": 0.5}
+
     placed_blocks = defaultdict(list)
     block_assignment = {}
     item_placed_count = {i: 0 for i in items}
@@ -63,7 +68,15 @@ def place_items_by_lsc(items, demand, weight, k_values, cooc, G, blocks, depot):
         unplaced = [i for i in items if item_placed_count[i] < k_values[i]]
         # print("I :", unplaced)
         
-        pps_scores = compute_dynamic_pps(unplaced, placed_items, demand, weight, cooc)
+        pps_scores = compute_dynamic_pps(
+            unplaced, 
+            placed_items, 
+            demand, 
+            weight, 
+            cooc, 
+            w_freq=pps_weights.get("w_freq", 0.5), 
+            w_cooc=pps_weights.get("w_cooc", 0.5)
+        )
         # print("PPS :", pps_scores)
         
         if not pps_scores:
@@ -76,7 +89,16 @@ def place_items_by_lsc(items, demand, weight, k_values, cooc, G, blocks, depot):
         best_block = min(
             available_blocks,
             key=lambda b: compute_lsc(
-                current_item, b, weight, k_values, placed_blocks, cooc, G, depot
+                current_item, 
+                b, 
+                weight, 
+                k_values, 
+                placed_blocks, 
+                cooc, 
+                G, 
+                depot,
+                w_depot=lsc_weights.get("w_depot", 0.5),
+                w_affinity=lsc_weights.get("w_affinity", 0.5)
             ),
         )
         # print("Pick B:", best_block)

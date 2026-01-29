@@ -1,4 +1,6 @@
 import os
+import os
+import yaml
 import json
 import pandas as pd
 from warehouse_graph import build_warehouse_graph
@@ -6,28 +8,45 @@ from preprocess import load_data, compute_demand_metrics, build_cooccurrence_mat
 from algorithm import place_items_by_lsc
 from evaluation import evaluate_solution
 
-# Configuration
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-RESULTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "results")
+# Path Configuration
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+RESULTS_DIR = os.path.join(BASE_DIR, "results")
+CONFIG_FILE = os.path.join(BASE_DIR, "config.yaml")
+
 ORDERS_FILE = os.path.join(DATA_DIR, "sample_orders.csv")
 ITEM_INFO_FILE = os.path.join(DATA_DIR, "sample_item_info.csv")
-# Fallback to existing Excel files if CSVs don't exist? 
-# Logic: Check if CSVs exist, if not try xlsx.
+
 if not os.path.exists(ORDERS_FILE):
     ORDERS_FILE = os.path.join(DATA_DIR, "orders.xlsx")
 if not os.path.exists(ITEM_INFO_FILE):
     ITEM_INFO_FILE = os.path.join(DATA_DIR, "item_info.xlsx")
 
-BLOCK_CAPACITY = 60
+def load_config():
+    with open(CONFIG_FILE, 'r') as f:
+        return yaml.safe_load(f)
 
 def main():
     print("------------------------------------------------------------")
     print("Warehouse Item Placement Optimization")
     print("------------------------------------------------------------")
+    
+    # Load Config
+    print(f"[0/5] Loading configuration from {CONFIG_FILE}...")
+    config = load_config()
+    
+    # Extract params
+    params = config.get("parameters", {})
+    block_capacity = params.get("block_capacity", 60)
+    pps_weights = params.get("pps_weights", {"w_freq": 0.5, "w_cooc": 0.5})
+    lsc_weights = params.get("lsc_weights", {"w_depot": 0.5, "w_affinity": 0.5})
+    
+    # Extract layout
+    layout_data = config.get("layout", {})
 
     # 1. Build Graph
-    print(f"[1/5] Building warehouse graph...")
-    G, depot, junctions, blocks = build_warehouse_graph()
+    print(f"[1/5] Building warehouse graph from config...")
+    G, depot, junctions, blocks = build_warehouse_graph(layout_data)
     print(f"      Graph nodes: {G.number_of_nodes()}, Edges: {G.number_of_edges()}")
 
     # 2. Load Data
@@ -38,13 +57,14 @@ def main():
     # 3. Preprocess
     print(f"[3/5] Computing metrics and co-occurrence...")
     item_demand_freq, item_total_demand, item_blocks_required, item_sizes, item_weight = \
-        compute_demand_metrics(orders_df, item_info_df, BLOCK_CAPACITY)
+        compute_demand_metrics(orders_df, item_info_df, block_capacity)
     
     cooc_matrix = build_cooccurrence_matrix(orders_df)
     
     # 4. Run Algorithm
     print(f"[4/5] Running PPS + LCS placement algorithm...")
     items = list(item_demand_freq.keys())
+    
     block_assignment, placed_blocks = place_items_by_lsc(
         items=items,
         demand=item_demand_freq,
@@ -53,7 +73,9 @@ def main():
         cooc=cooc_matrix,
         G=G, 
         blocks=blocks, 
-        depot=depot
+        depot=depot,
+        pps_weights=pps_weights,
+        lsc_weights=lsc_weights
     )
     print(f"      Placed {len(block_assignment)} blocks.")
 
@@ -67,7 +89,7 @@ def main():
         item_total_demand, 
         G, 
         depot, 
-        BLOCK_CAPACITY
+        block_capacity
     )
 
     # Output Results
