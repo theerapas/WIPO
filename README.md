@@ -1,65 +1,189 @@
-# Warehouse Item Placement Optimization
+# Warehouse Item Placement Optimization  
+**Less Walking, More Working**
 
-This project implements a graph-based optimization algorithm for assigning items to warehouse storage blocks. The goal is to minimize total walking distance for order picking and ensure balanced handling effort.
+This repository presents a **graph-based warehouse item placement algorithm** designed to reduce order-picking travel distance and physical handling effort by leveraging **historical demand patterns** and **item co-occurrence relationships**.
 
-## Overview
-Efficient warehouse layout is critical for reducing operational costs. This repository contains a Python implementation of a dynamic greedy heuristic that assigns items to storage blocks based on:
-1. **Demand Frequency**: High-demand items are placed closer to the depot.
-2. **Co-occurrence**: Items frequently ordered together are placed near each other to minimize travel between picks.
+This project was developed as a **group project** during the **NUS Summer Workshop 2025**:
+
+- **Course**: *Solving Real World Problems with Computational Thinking*  
+- **Instructor**: Prof. Leong Hon Wai & TAs
+- **Institution**: National University of Singapore (School of Computing)  
+- **Team**: BLEST (T02A)  
+- **Award**: *First Prize* (Group Project)
+
+---
+
+## Motivation
+
+Warehouse layouts are often designed without fully considering **actual order patterns**, leading to:
+
+- excessive walking distance,
+- inefficient picking routes,
+- increased worker fatigue.
+
+By modeling the warehouse as a graph and dynamically assigning items based on **popularity, weight, and relationships**, we aim to produce layouts that are **more efficient, more ergonomic, and more realistic**.
+
+![First Prize](assets/T02A_Cert.jpg)
+
+*First Prize — NUS Summer Workshop 2025*
+
+---
 
 ## Problem Formulation
-- **Warehouse Layout**: Modeled as a graph with a central **Depot**, **Junctions**, and storage **Blocks**.
-- **Nodes**:
-  - `Depot`: Starting and ending point of all picking routes.
-  - `Blocks`: Storage locations with fixed capacity.
-  - `Junctions`: Intermediary points connecting blocks and the depot.
-- **Objective**:
-  - Minimize **Walking Distance** (sum of path lengths for all orders).
-  - Balance **Handling Effort** (workload distribution across blocks).
 
-## Algorithm Logic
-The solution uses a **Dynamic Greedy Approach** with two key scoring metrics:
+### Warehouse Model
+- The warehouse is modeled as a **graph** \( G = (V, E) \):
+  - **Depot**: entry and exit point for all picking routes
+  - **Blocks**: storage locations with fixed capacity
+  - **Junctions**: intermediate nodes to model walking paths
+- Edge weights represent **walking distances**.
+
+![Warehouse Plan](assets/Warehouse_Plan.png)
+
+*Graph-based warehouse representation with depot, junctions, and storage blocks.*
+
+---
+
+### Objective
+
+We assign items to storage blocks for a given season such that:
+
+1. **Total Walking Distance** is minimized  
+2. **Handling Effort** is minimized  
+
+These objectives are evaluated using historical customer orders.
+
+---
+
+## Inputs and Outputs
+
+### Inputs
+- Seasonal customer orders  
+  (`CustomerID`, `ItemID`, `Amount`)
+- Item attributes:
+  - size (volume)
+  - weight
+- Warehouse layout (graph)
+- Block capacity
+- Historical total sales for storage planning
+
+### Output
+- A seasonal item-to-block placement plan that satisfies all constraints and minimizes cost.
+
+---
+
+## Constraints and Assumptions
+
+### Constraints
+- **Unique Assignment**: each block stores at most one item type
+- **Storage Requirement**: each item is assigned exactly the required number of blocks
+- **Fixed Locations**: block locations and warehouse layout are predefined
+- **Complete Assignment**: all required storage must be allocated
+
+### Assumptions
+- Distances are computed using **shortest paths on the warehouse graph**
+- No congestion or worker interference
+- Sufficient total warehouse capacity
+- Seasonal demand patterns are stable across years
+
+---
+## Algorithm Overview
+
+We use a **Dynamic Greedy Algorithm** guided by two scoring functions:
+
+![scoring](assets/PPSandLCS.png)
+
+---
 
 ### 1. Placement Priority Score (PPS)
-Determines *which item to place next*.
-$$ PPS(i) = w_{\text{freq}} \cdot \frac{d_i \cdot w_i}{\max\limits_{j\in I} (d_j \cdot w_j)} + w_{\text{cooc}} \cdot \frac{\sum\limits_{j \in I_{placed}}  co(i, j)}{\max\limits_{k\in I} \sum\limits_{j \in I, j \neq k}  co(k, j)} $$
-- Prioritizes items with high demand and high total co-occurrence with already placed items.
-- Dynamic: Scores update as more items are placed.
+
+Determines **which item to place next**.
+
+$$
+PPS(i) = w_{\text{freq}} \cdot \frac{d_i \cdot w_i}{\max\limits_{j\in I} (d_j \cdot w_j)} 
++ w_{\text{cooc}} \cdot \frac{\sum\limits_{j \in I_{placed}}  co(i, j)}{\max\limits_{k\in I} \sum\limits_{j \in I, j \neq k}  co(k, j)}
+$$
+
+Where:
+- $d_i$ : demand frequency of item $i$
+- $w_i$ : weight of item $i$
+- $co(i,j)$ : co-occurrence between items $i$ and $j$
+
+High PPS -> item is important and should be placed early.
+
+---
 
 ### 2. Location Cost Score (LCS)
-Determines *where to place the selected item*.
-$$ LCS(i, b) = w_{\text{depot}} \cdot \frac{\text{Dist}(\text{Depot}, b) \cdot w_i}{k_i} + w_{\text{affinity}} \cdot \sum\limits_{j \in I_{\text{placed}}} co(i, j) \cdot \text{Dist}(b, b'_j) $$
-- Selects the block `b` that minimizes this cost.
-- Balances proximity to depot (for heavy/frequent items) and proximity to related items (affinity).
 
-**Process Loop**:
-1. Calculate PPS for all unplaced items.
-2. Pick item with highest PPS.
-3. Calculate LCS for all available blocks.
-4. Assign item to block with lowest LCS.
-5. Repeat until all items are placed or blocks are full.
+Determines **where to place the selected item**.
 
-## Modeling Assumptions
-1. **Graph Topology**: Distances are fixed weights on edges (e.g., Depot-Junction=3, Junction-Block=1).
-2. **Block Capacity**: Each block has a fixed volume capacity (default: 60 units).
-3. **Picking Strategy**: Pickers visit assigned blocks using a **Nearest Neighbor TSP** heuristic to minimize travel distance within each order.
-4. **Order Batching**: Orders are processed individually (no batching).
+$$
+LCS
+(i, b) = 
+w_{\text{depot}} \cdot \frac{\text{Dist}(\text{Depot}, b) \cdot w_i}{k_i}
++ w_{\text{affinity}} \cdot \sum\limits_{j \in I_{\text{placed}}} co(i, j) \cdot \text{Dist}(b, b'_j)
+$$
+
+Low LCS -> block is convenient for the item.
+
+---
+
+### Greedy Placement Loop
+
+1. Compute PPS for all unplaced items  
+2. Select item with highest PPS  
+3. Compute LCS for all available blocks  
+4. Assign item to block with lowest LCS  
+5. Repeat until all items are placed
+
+---
 
 ## Evaluation Metrics
-1. **Total Walking Distance**: The sum of travel distances for all historical orders.
-2. **Handling Effort**: A proxy for workload, calculated as:
-   $$ Effort = \sum (Weight_i \times Amount_{block} \times Dist(Depot, Block)) $$
-   Low handling effort implies heavy traffic is minimized and heavy items are easy to access.
 
+### 1. Total Walking Distance
+For each order:
+- start at depot
+- visit required blocks
+- return to depot
+
+Total walking distance is summed across all customers.
+
+---
+
+### 2. Handling Effort (Updated Definition)
+
+Handling effort is calculated **per pick**, not per season total:
+
+$$
+\text{Handling Effort} =
+\sum (\text{Item Weight} \times \text{Amount Picked} \times \text{Distance from Depot})
+$$
+
+This better reflects **actual physical effort** experienced by workers during picking.
+
+---
+
+## Results and Comparison
+
+![before and after](assets/before_after.png)
+
+*Comparison between baseline layouts and algorithm-generated layouts.*
+
+Across multiple problem instances and seasons, the algorithm consistently achieved:
+- reduced total walking distance
+- reduced handling effort
+- more balanced and realistic layouts
+
+---
 ## Reproducibility Note
 - **Customer ID Sorting**: Customer IDs are processed in **natural numerical order** (e.g., P1, P2, ..., P9, P10) rather than lexicographical order. This ensures consistent evaluation as inventory is depleted sequentially.
 
 
 ## How to Run
 
-### Prerequisites
+### Requirements
 - Python 3.8+
-- Recommended: `pip install -r requirements.txt`
+- Dependencies listed in `requirements.txt`
 
 ### Steps
 1. **Clone the repository**
@@ -83,21 +207,17 @@ Outputs are saved in the `results/` directory:
 - `assignment.json`: Mapping of Block ID to Item ID.
 - `metrics.csv`: calculated Totals for Walking Distance and Handling Effort.
 
-### Example Output
-```
-Total Walking Distance: 145.00
-Total Handling Effort:  320.00
-```
-
 ## Limitations
-- **Greedy Heuristic**: Does not guarantee a global optimum.
-- **Static Placement**: Does not account for seasonal trends or changing demand over time.
-- **Simplified Routing**: Actual picking routes might be more complex (TSP).
+- Greedy heuristic does not guarantee global optimality
+- All blocks are assumed to have equal capacity
+- No overflow or multi-item block sharing
+- Evaluation is approximate and simplified
 
 ## Future Improvements
-- Implement simulated annealing or genetic algorithms for comparison.
-- Add support for different picking strategies (S-shape, midpoint).
-- Visualize the warehouse graph and heatmaps of block activity.
+- Support variable block capacities
+- Allow controlled overflow between items
+- Explore metaheuristics (e.g., simulated annealing)
+- Visualize layouts and picking heatmaps
 
 ## License
 MIT License.
