@@ -42,7 +42,7 @@ $$ LCS(i, b) = w_{\text{depot}} \cdot \frac{\text{Dist}(\text{Depot}, b) \cdot w
 ## Modeling Assumptions
 1. **Graph Topology**: Distances are fixed weights on edges (e.g., Depot-Junction=3, Junction-Block=1).
 2. **Block Capacity**: Each block has a fixed volume capacity (default: 60 units).
-3. **Picking Strategy**: Pickers visit blocks in an order optimized by distance from depot (greedy routing per order).
+3. **Picking Strategy**: Pickers visit assigned blocks using a **Nearest Neighbor TSP** heuristic to minimize travel distance within each order.
 4. **Order Batching**: Orders are processed individually (no batching).
 
 ## Evaluation Metrics
@@ -50,6 +50,10 @@ $$ LCS(i, b) = w_{\text{depot}} \cdot \frac{\text{Dist}(\text{Depot}, b) \cdot w
 2. **Handling Effort**: A proxy for workload, calculated as:
    $$ Effort = \sum (Weight_i \times Amount_{block} \times Dist(Depot, Block)) $$
    Low handling effort implies heavy traffic is minimized and heavy items are easy to access.
+
+## Reproducibility Note
+- **Customer ID Sorting**: Customer IDs are processed in **natural numerical order** (e.g., P1, P2, ..., P9, P10) rather than lexicographical order. This ensures consistent evaluation as inventory is depleted sequentially.
+
 
 ## How to Run
 

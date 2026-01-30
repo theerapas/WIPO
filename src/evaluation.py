@@ -1,5 +1,14 @@
 import networkx as nx
+import re
 from collections import defaultdict
+
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    '''
+    return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', str(text))]
+
 
 def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item_total_demand, G, depot, block_capacity=60):
     """
@@ -41,7 +50,16 @@ def evaluate_solution(block_assignment, orders_df, item_sizes, item_weight, item
     # Reset inventory for simulation
     simulation_inventory = block_inventory_template.copy()
     
-    for cust, group in orders_df.groupby("CustomerID"):
+    # Reset inventory for simulation
+    simulation_inventory = block_inventory_template.copy()
+    
+    # Sort customers naturally (P1, P2, ... P10)
+    grouped_orders = orders_df.groupby("CustomerID")
+    sorted_customers = sorted(grouped_orders.groups.keys(), key=natural_keys)
+
+    for cust in sorted_customers:
+        group = grouped_orders.get_group(cust)
+
         item_amounts = group.groupby("ItemID")["Amount"].sum().to_dict()
         blocks_visited = []
         picked_at_block = defaultdict(float) # Track weight picked at each block

@@ -2,6 +2,7 @@ import os
 import os
 import yaml
 import json
+import re
 import pandas as pd
 from warehouse_graph import build_warehouse_graph
 from preprocess import load_data, compute_demand_metrics, build_cooccurrence_matrix
@@ -30,6 +31,15 @@ if not os.path.exists(INVENTORY_FILE):
 def load_config():
     with open(CONFIG_FILE, 'r') as f:
         return yaml.safe_load(f)
+
+
+def natural_keys(text):
+    '''
+    alist.sort(key=natural_keys) sorts in human order
+    http://nedbatchelder.com/blog/200712/human_sorting.html
+    '''
+    return [int(c) if c.isdigit() else c for c in re.split(r'(\d+)', str(text))]
+
 
 def main():
     print("------------------------------------------------------------")
@@ -114,7 +124,9 @@ def main():
 
     print("\n>>> 3. Customer Order Metrics")
     print(f"{'CustomerID':<15} {'Dist':<10} {'Effort':<12} {'Path'}")
-    for cust in sorted(order_distances.keys()):
+    for cust in sorted(order_distances.keys(), key=natural_keys):
+
+
         d = order_distances.get(cust, 0)
         e = order_efforts.get(cust, 0)
         r = order_routes.get(cust, [])
