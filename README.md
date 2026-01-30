@@ -99,10 +99,7 @@ We use a **Dynamic Greedy Algorithm** guided by two scoring functions:
 
 Determines **which item to place next**.
 
-$$
-PPS(i) = w_{\text{freq}} \cdot \frac{d_i \cdot w_i}{\max\limits_{j\in I} (d_j \cdot w_j)} 
-+ w_{\text{cooc}} \cdot \frac{\sum\limits_{j \in I_{placed}}  co(i, j)}{\max\limits_{k\in I} \sum\limits_{j \in I, j \neq k}  co(k, j)}
-$$
+$$PPS(i) = w_{\text{freq}} \cdot \frac{d_i \cdot w_i}{\max\limits_{j\in I} (d_j \cdot w_j)} + w_{\text{cooc}} \cdot \frac{\sum\limits_{j \in I_{placed}}  co(i, j)}{\max\limits_{k\in I} \sum\limits_{j \in I, j \neq k}  co(k, j)}$$
 
 Where:
 - $d_i$ : demand frequency of item $i$
@@ -117,12 +114,7 @@ High PPS -> item is important and should be placed early.
 
 Determines **where to place the selected item**.
 
-$$
-LCS
-(i, b) = 
-w_{\text{depot}} \cdot \frac{\text{Dist}(\text{Depot}, b) \cdot w_i}{k_i}
-+ w_{\text{affinity}} \cdot \sum\limits_{j \in I_{\text{placed}}} co(i, j) \cdot \text{Dist}(b, b'_j)
-$$
+$$LCS(i, b) = w_{\text{depot}} \cdot \frac{\text{Dist}(\text{Depot}, b) \cdot w_i}{k_i} + w_{\text{affinity}} \cdot \sum\limits_{j \in I_{\text{placed}}} co(i, j) \cdot \text{Dist}(b, b'_j)$$
 
 Low LCS -> block is convenient for the item.
 
